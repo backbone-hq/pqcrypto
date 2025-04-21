@@ -1,0 +1,59 @@
+from {{ module }} import ffi as __ffi, lib as __lib
+
+{{ const_defs }}
+
+
+def kem_generate_keypair_factory(ffi, lib):
+    def generate_keypair():
+        public_key_buf = ffi.new("uint8_t [{}]".format(lib.{{ algorithm }}_CRYPTO_PUBLICKEYBYTES))
+        secret_key_buf = ffi.new("uint8_t [{}]".format(lib.{{ algorithm }}_CRYPTO_SECRETKEYBYTES))
+        if 0 != lib.{{ algorithm }}_crypto_kem_keypair(public_key_buf, secret_key_buf):
+            raise RuntimeError("KEM keypair generation failed")
+        public_key = bytes(ffi.buffer(public_key_buf, lib.{{ algorithm }}_CRYPTO_PUBLICKEYBYTES))
+        secret_key = bytes(ffi.buffer(secret_key_buf, lib.{{ algorithm }}_CRYPTO_SECRETKEYBYTES))
+        return public_key, secret_key
+    return generate_keypair
+
+
+def kem_encrypt_factory(ffi, lib):
+    def encrypt(public_key):
+        if not isinstance(public_key, bytes):
+            raise TypeError("'public_key' must be of type 'bytes'")
+        if len(public_key) != lib.{{ algorithm }}_CRYPTO_PUBLICKEYBYTES:
+            raise ValueError(
+                f"'public_key' must be of length '{lib.{{ algorithm }}_CRYPTO_PUBLICKEYBYTES}'"
+            )
+        ciphertext_buf = ffi.new("uint8_t [{}]".format(lib.{{ algorithm }}_CRYPTO_CIPHERTEXTBYTES))
+        plaintext_buf = ffi.new("uint8_t [{}]".format(lib.{{ algorithm }}_CRYPTO_BYTES))
+        if 0 != lib.{{ algorithm }}_crypto_kem_enc(ciphertext_buf, plaintext_buf, public_key):
+            raise RuntimeError("KEM encryption failed")
+        ciphertext = bytes(ffi.buffer(ciphertext_buf, lib.{{ algorithm }}_CRYPTO_CIPHERTEXTBYTES))
+        plaintext = bytes(ffi.buffer(plaintext_buf, lib.{{ algorithm }}_CRYPTO_BYTES))
+        return ciphertext, plaintext
+    return encrypt
+
+
+def kem_decrypt_factory(ffi, lib):
+    def decrypt(secret_key, ciphertext):
+        if not isinstance(secret_key, bytes):
+            raise TypeError("'secret_key' must be of type 'bytes'")
+        if not isinstance(ciphertext, bytes):
+            raise TypeError("'ciphertext' must be of type 'bytes'")
+        if len(secret_key) != lib.{{ algorithm }}_CRYPTO_SECRETKEYBYTES:
+            raise ValueError(
+                f"'secret_key' must be of length '{lib.{{ algorithm }}_CRYPTO_SECRETKEYBYTES}'"
+            )
+        if len(ciphertext) != lib.{{ algorithm }}_CRYPTO_CIPHERTEXTBYTES:
+            raise ValueError(
+                f"'ciphertext' must be of length '{lib.{{ algorithm }}_CRYPTO_CIPHERTEXTBYTES}'"
+            )
+        plaintext_buf = ffi.new("uint8_t [{}]".format(lib.{{ algorithm }}_CRYPTO_BYTES))
+        if 0 != lib.{{ algorithm }}_crypto_kem_dec(plaintext_buf, ciphertext, secret_key):
+            raise RuntimeError("KEM decryption failed")
+        return bytes(ffi.buffer(plaintext_buf, lib.{{ algorithm }}_CRYPTO_BYTES))
+    return decrypt
+
+
+generate_keypair = kem_generate_keypair_factory(__ffi, __lib)
+encrypt = kem_encrypt_factory(__ffi, __lib)
+decrypt = kem_decrypt_factory(__ffi, __lib)

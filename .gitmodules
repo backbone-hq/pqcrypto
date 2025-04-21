@@ -1,0 +1,4 @@
+[submodule "pqclean"]
+	path = pqclean
+	url = https://github.com/PQClean/PQClean
+	branch = master
