@@ -1,6 +1,6 @@
 [project]
 name = "pqcrypto"
-version = "0.3.0"
+version = "0.3.1"
 description = "Post-quantum cryptography for Python."
 authors = [{ name = "Backbone Authors", email = "root@backbone.dev" }]
 license = "Apache-2.0"
@@ -37,25 +37,24 @@ dev = [
 ]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "cffi", "jinja2", "setuptools"]
 build-backend = "hatchling.build"
 
 [tool.ruff]
 exclude = ["pqclean"]
 
 [tool.cibuildwheel]
-before-build = "uv run compile.py"
+before-build = "rm -r ./pqcrypto/* || true && pip install cffi jinja2 setuptools && python compile.py"
+skip = "pp*"
 
 [tool.setuptools]
 py-modules = ["pqcrypto"]
 
 [tool.hatch.build]
 pure-python = false
-
-[tool.hatch.build.targets.wheel]
 include = ["pqcrypto"]
 exclude = ["pqcrypto/**/*.c", "pqcrypto/**/*.o"]
 ignore-vcs = true
 
-[tool.hatch.build.targets.wheel.hooks.custom]
+[tool.hatch.build.hooks.custom]
 path = "build.py"

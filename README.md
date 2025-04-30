@@ -9,13 +9,13 @@
 
 In recent years, there has been a substantial amount of research on quantum computers – machines that exploit quantum mechanical phenomena to solve mathematical problems that are difficult or intractable for conventional computers. If large-scale quantum computers are ever built, they will be able to break many of the public-key cryptosystems currently in use. This would seriously compromise the confidentiality and integrity of digital communications on the Internet and elsewhere. The goal of post-quantum cryptography (also called quantum-resistant cryptography) is to develop cryptographic systems that are secure against both quantum and classical computers, and can interoperate with existing communications protocols and networks.
 
-## 💡 Purpose
+## 🎯 Purpose
 
 PQCrypto provides tested, ergonomic **Python 3** CFFI bindings to implementations of quantum-resistant cryptographic algorithms that were submitted to the [NIST Post-Quantum Cryptography Standardization](https://csrc.nist.gov/projects/post-quantum-cryptography/post-quantum-cryptography-standardization) process.
 
 This library focuses exclusively on post-quantum cryptography for Python, adhering to the Unix philosophy of doing one thing well. The cryptographic primitives are designed to be composable with existing cryptographic libraries, enabling simple integration of post-quantum cryptography into existing applications without sacrificing security or performance.
 
-## 🚀 Installation
+## 💾 Installation
 
 You can install PQCrypto using your package manager of choice.
 Pre-compiled wheels are available for common platforms and Python versions.

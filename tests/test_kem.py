@@ -9,11 +9,7 @@ finders = [
     for finder in pkgutil.iter_modules(pqcrypto.kem.__path__)
     if not finder.name.startswith("_")
 ]
-modules = [
-    importlib.import_module(f"pqcrypto.kem.{module.name}")
-    for module in finders
-    if module.name != "common"
-]
+modules = [importlib.import_module(f"pqcrypto.kem.{module.name}") for module in finders]
 
 
 @pytest.mark.parametrize("variant", modules)

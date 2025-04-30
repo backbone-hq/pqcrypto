@@ -9,9 +9,7 @@ finders = [
     if not finder.name.startswith("_")
 ]
 modules = [
-    importlib.import_module(f"pqcrypto.sign.{module.name}")
-    for module in finders
-    if module.name != "common"
+    importlib.import_module(f"pqcrypto.sign.{module.name}") for module in finders
 ]
 
 

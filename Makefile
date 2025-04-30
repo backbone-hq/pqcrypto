@@ -3,7 +3,6 @@ test:
 
 clean:
 	rm -rf ./dist || true
-	rm -rf ./build || true
 	rm -r ./pqcrypto/* || true
 
 compile:
