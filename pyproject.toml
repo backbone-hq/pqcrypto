@@ -45,6 +45,7 @@ exclude = ["pqclean"]
 
 [tool.cibuildwheel]
 before-build = "pip install cffi jinja2 setuptools && python compile.py"
+skip = "pp*-win*"
 
 [tool.setuptools]
 py-modules = ["pqcrypto"]
