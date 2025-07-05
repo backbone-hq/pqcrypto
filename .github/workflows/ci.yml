@@ -37,6 +37,7 @@ jobs:
   # Reference: https://cibuildwheel.pypa.io/en/stable/setup/#github-actions
   build-wheels:
     name: build-wheels-${{ matrix.os }}
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs:
       - check
     runs-on: ${{ matrix.os }}
