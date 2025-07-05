@@ -36,6 +36,9 @@ common_sources: List[Path] = [
     and file.name.endswith(".c")
     and "keccak" not in str(file.resolve())
 ]
+absolute_common_sources: List[str] = [
+    str(source.absolute()) for source in common_sources
+]
 
 
 def prepare_build_args() -> Tuple[List[str], List[str], List[str]]:
@@ -57,8 +60,8 @@ def create_algorithm_ffi(algorithm_name: str, path: str, type: AlgorithmType) ->
     compiler_args, linker_args, libraries = prepare_build_args()
 
     variant = "clean"
-    variant_path = algorithm_path / variant
-    header_path = variant_path / "api.h"
+    variant_path: Path = algorithm_path / variant
+    header_path: Path = variant_path / "api.h"
 
     ffi = FFI()
     template_name = f"definitions_{type}.c.j2"
@@ -73,19 +76,41 @@ def create_algorithm_ffi(algorithm_name: str, path: str, type: AlgorithmType) ->
         if file.is_file() and file.name.endswith(".c")
     ]
 
+    absolute_variant_sources = [str(source.absolute()) for source in variant_sources]
+    absolute_header_path = str(header_path.absolute())
+
     ffi.set_source(
         f"pqcrypto._{type}.{algorithm_name}",
-        f'#include "{str(header_path.resolve())}"',
-        sources=[
-            str(source.relative_to(Path.cwd()))
-            for source in (*common_sources, *variant_sources)
-        ],
+        f'#include "{absolute_header_path}"',
+        sources=[*absolute_common_sources, *absolute_variant_sources],
         include_dirs=[str(PQCLEAN_COMMON), str(variant_path.resolve())],
         extra_compile_args=compiler_args,
         extra_link_args=linker_args,
         libraries=libraries,
     )
     ffi.compile(verbose=True)
+
+    if platform.system().lower() == "windows":
+        import shutil
+
+        release_dir = Path("Release")
+        if release_dir.exists():
+            for dir_type in ["_kem", "_sign"]:
+                release_type_dir = release_dir / "pqcrypto" / dir_type
+                if release_type_dir.exists():
+                    target_type_dir = PATH_PQCRYPTO / dir_type
+                    target_type_dir.mkdir(parents=True, exist_ok=True)
+                    for item in release_type_dir.rglob("*"):
+                        if (
+                            item.is_file()
+                            and not (
+                                target_type_dir / item.relative_to(release_type_dir)
+                            ).exists()
+                        ):
+                            shutil.copy2(
+                                item,
+                                target_type_dir / item.relative_to(release_type_dir),
+                            )
 
 
 def define_constants(algorithm_name: str, type: AlgorithmType) -> str:
