@@ -4,8 +4,9 @@ on:
   push:
     branches:
       - master
-      - experimentation
   pull_request:
+    branches:
+      - master
 
 jobs:
   check:
@@ -36,6 +37,7 @@ jobs:
   # Reference: https://cibuildwheel.pypa.io/en/stable/setup/#github-actions
   build-wheels:
     name: build-wheels-${{ matrix.os }}
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs:
       - check
     runs-on: ${{ matrix.os }}
@@ -72,6 +74,7 @@ jobs:
     needs:
       - build-wheels
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
 
     environment: release
     permissions:
