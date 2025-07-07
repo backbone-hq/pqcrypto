@@ -1,6 +1,6 @@
 [project]
 name = "pqcrypto"
-version = "0.3.2"
+version = "0.3.3"
 description = "Post-quantum cryptography for Python."
 authors = [{ name = "Backbone Authors", email = "root@backbone.dev" }]
 license = "Apache-2.0"
