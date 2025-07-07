@@ -64,10 +64,9 @@ def create_algorithm_ffi(algorithm_name: str, path: str, type: AlgorithmType) ->
     header_path: Path = variant_path / "api.h"
 
     ffi = FFI()
-    template_name = f"definitions_{type}.c.j2"
-    template = jinja_environment.get_template(template_name)
+    definitions_template = jinja_environment.get_template(f"definitions_{type}.c.j2")
     algorithm_id = f"pqclean_{algorithm_name.replace('_', '')}_{variant}".upper()
-    definitions = template.render(algorithm=algorithm_id)
+    definitions = definitions_template.render(algorithm=algorithm_id)
     ffi.cdef(definitions)
 
     variant_sources = [
@@ -88,29 +87,8 @@ def create_algorithm_ffi(algorithm_name: str, path: str, type: AlgorithmType) ->
         extra_link_args=linker_args,
         libraries=libraries,
     )
+
     ffi.compile(verbose=True)
-
-    if platform.system().lower() == "windows":
-        import shutil
-
-        release_dir = Path("Release")
-        if release_dir.exists():
-            for dir_type in ["_kem", "_sign"]:
-                release_type_dir = release_dir / "pqcrypto" / dir_type
-                if release_type_dir.exists():
-                    target_type_dir = PATH_PQCRYPTO / dir_type
-                    target_type_dir.mkdir(parents=True, exist_ok=True)
-                    for item in release_type_dir.rglob("*"):
-                        if (
-                            item.is_file()
-                            and not (
-                                target_type_dir / item.relative_to(release_type_dir)
-                            ).exists()
-                        ):
-                            shutil.copy2(
-                                item,
-                                target_type_dir / item.relative_to(release_type_dir),
-                            )
 
 
 def define_constants(algorithm_name: str, type: AlgorithmType) -> str:
