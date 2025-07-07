@@ -54,7 +54,13 @@ py-modules = ["pqcrypto"]
 pure-python = false
 ignore-vcs = true
 include = ["pqcrypto"]
-exclude = ["pqcrypto/**/*.c", "pqcrypto/**/*.o", "Release", "Release/**"]
+exclude = ["pqcrypto/**/*.c", "pqcrypto/**/*.o", "Release"]
+artifacts = [
+    "pqcrypto/_kem/*.so",
+    "pqcrypto/_kem/*.pyd",
+    "pqcrypto/_sign/*.so",
+    "pqcrypto/_sign/*.pyd"
+]
 
 [tool.hatch.build.hooks.custom]
 path = "build.py"
