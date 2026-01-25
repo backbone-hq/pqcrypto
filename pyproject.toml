@@ -1,6 +1,6 @@
 [project]
 name = "pqcrypto"
-version = "0.3.4"
+version = "0.4.0"
 description = "Post-quantum cryptography for Python."
 authors = [{ name = "Backbone Authors", email = "root@backbone.dev" }]
 license = "Apache-2.0"
@@ -31,7 +31,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "cibuildwheel>=2.23.2",
+    "cibuildwheel>=3.0.0; python_version >= '3.11'",
     "hatchling>=1.27.0",
     "jinja2>=3.1.6",
     "pytest>=8.3.5",
@@ -65,4 +65,4 @@ artifacts = [
 ]
 
 [tool.hatch.build.hooks.custom]
-path = "build.py"
+path = "hook.py"
