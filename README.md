@@ -21,16 +21,19 @@ You can install PQCrypto using your package manager of choice.
 Pre-compiled wheels are available for common platforms and Python versions.
 
 Using `uv`:
+
 ```bash
 uv add pqcrypto
 ```
 
 Using `poetry`:
+
 ```bash
 poetry add pqcrypto
 ```
 
 Using `pip`:
+
 ```bash
 pip install pqcrypto
 ```
@@ -71,6 +74,49 @@ signature = sign(secret_key, b"Hello world")
 
 # Bob uses Alice's public key to validate her signature
 assert verify(public_key, b"Hello world", signature)
+```
+
+## 🔒 Hybrid Encryption (KEM + Symmetric Cipher)
+
+A KEM alone only establishes a shared secret — it does not encrypt arbitrary messages. To encrypt data, combine the KEM with a symmetric cipher in a hybrid scheme. The KEM bootstraps a shared key and the symmetric cipher uses the key to encrypt the plaintext.
+
+This example uses [`mceliece8192128`](https://classic.mceliece.org/) for key encapsulation and [`ChaCha20-Poly1305`](https://cr.yp.to/chacha.html) for authenticated symmetric encryption.
+
+> **Note:** This example requires the [`cryptography`](https://pypi.org/project/cryptography/) package (`pip install cryptography`).
+
+```python
+import os
+from pqcrypto.kem.mceliece8192128 import generate_keypair, encrypt, decrypt
+from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
+
+# Alice generates a (public, secret) key pair
+public_key, secret_key = generate_keypair()
+
+# Alice encrypts a message using Bob's public key
+message = b"Hello, post-quantum world!"
+
+# Alice encapsulates a fresh shared secret using Bob's public key.
+# `kem_ciphertext` is sent to Bob
+# `shared_secret` never leaves Alice's memory
+kem_ciphertext, shared_secret = encrypt(public_key)
+
+# Alice uses the shared secret as a ChaCha20-Poly1305 key.
+# A random 96-bit nonce is generated for each message
+# It is IMPORTANT to never reuse a nonce.
+nonce = os.urandom(12)
+chacha = ChaCha20Poly1305(shared_secret)
+ciphertext = chacha.encrypt(nonce, message, associated_data=None)
+
+# Alice sends (kem_ciphertext, nonce, ciphertext) to Bob.
+
+# Bob decapsulates the shared secret using his secret key
+shared_secret_recovered = decrypt(secret_key, kem_ciphertext)
+
+# Bob decrypts the message using the recovered shared secret
+chacha = ChaCha20Poly1305(shared_secret_recovered)
+message_recovered = chacha.decrypt(nonce, ciphertext, associated_data=None)
+
+assert message_recovered == message
 ```
 
 ## 📋 Available Algorithms
@@ -119,7 +165,6 @@ assert verify(public_key, b"Hello world", signature)
 - sphincs_shake_256f_simple
 - sphincs_shake_256s_simple
 ```
-
 
 ## 🙏 Credits
 
