@@ -92,31 +92,17 @@ from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 # Alice generates a (public, secret) key pair
 public_key, secret_key = generate_keypair()
 
-# Alice encrypts a message using Bob's public key
-message = b"Hello, post-quantum world!"
-
-# Alice encapsulates a fresh shared secret using Bob's public key.
-# `kem_ciphertext` is sent to Bob
-# `shared_secret` never leaves Alice's memory
+# Bob encapsulates a shared secret using Alice's public key and encrypts his message
 kem_ciphertext, shared_secret = encrypt(public_key)
-
-# Alice uses the shared secret as a ChaCha20-Poly1305 key.
-# A random 96-bit nonce is generated for each message
-# It is IMPORTANT to never reuse a nonce.
 nonce = os.urandom(12)
-chacha = ChaCha20Poly1305(shared_secret)
-ciphertext = chacha.encrypt(nonce, message, associated_data=None)
+ciphertext = ChaCha20Poly1305(shared_secret).encrypt(nonce, b"Hello, world!", None)
 
-# Alice sends (kem_ciphertext, nonce, ciphertext) to Bob.
-
-# Bob decapsulates the shared secret using his secret key
+# Alice decapsulates the shared secret using her secret key and decrypts Bob's message
 shared_secret_recovered = decrypt(secret_key, kem_ciphertext)
+plaintext_recovered = ChaCha20Poly1305(shared_secret_recovered).decrypt(nonce, ciphertext, None)
 
-# Bob decrypts the message using the recovered shared secret
-chacha = ChaCha20Poly1305(shared_secret_recovered)
-message_recovered = chacha.decrypt(nonce, ciphertext, associated_data=None)
-
-assert message_recovered == message
+# Compare the original and recovered messages
+assert plaintext_recovered == b"Hello, world!"
 ```
 
 ## 📋 Available Algorithms
