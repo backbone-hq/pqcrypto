@@ -21,16 +21,19 @@ You can install PQCrypto using your package manager of choice.
 Pre-compiled wheels are available for common platforms and Python versions.
 
 Using `uv`:
+
 ```bash
 uv add pqcrypto
 ```
 
 Using `poetry`:
+
 ```bash
 poetry add pqcrypto
 ```
 
 Using `pip`:
+
 ```bash
 pip install pqcrypto
 ```
@@ -71,6 +74,35 @@ signature = sign(secret_key, b"Hello world")
 
 # Bob uses Alice's public key to validate her signature
 assert verify(public_key, b"Hello world", signature)
+```
+
+## 🔒 Hybrid Encryption (KEM + Symmetric Cipher)
+
+A KEM alone only establishes a shared secret — it does not encrypt arbitrary messages. To encrypt data, combine the KEM with a symmetric cipher in a hybrid scheme. The KEM bootstraps a shared key and the symmetric cipher uses the key to encrypt the plaintext.
+
+This example uses [`mceliece8192128`](https://classic.mceliece.org/) for key encapsulation and [`ChaCha20-Poly1305`](https://cr.yp.to/chacha.html) for authenticated symmetric encryption.
+
+> **Note:** This example requires the [`cryptography`](https://pypi.org/project/cryptography/) package (`pip install cryptography`).
+
+```python
+import os
+from pqcrypto.kem.mceliece8192128 import generate_keypair, encrypt, decrypt
+from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
+
+# Alice generates a (public, secret) key pair
+public_key, secret_key = generate_keypair()
+
+# Bob encapsulates a shared secret using Alice's public key and encrypts his message
+kem_ciphertext, shared_secret = encrypt(public_key)
+nonce = os.urandom(12)
+ciphertext = ChaCha20Poly1305(shared_secret).encrypt(nonce, b"Hello, world!", None)
+
+# Alice decapsulates the shared secret using her secret key and decrypts Bob's message
+shared_secret_recovered = decrypt(secret_key, kem_ciphertext)
+plaintext_recovered = ChaCha20Poly1305(shared_secret_recovered).decrypt(nonce, ciphertext, None)
+
+# Compare the original and recovered messages
+assert plaintext_recovered == b"Hello, world!"
 ```
 
 ## 📋 Available Algorithms
@@ -119,7 +151,6 @@ assert verify(public_key, b"Hello world", signature)
 - sphincs_shake_256f_simple
 - sphincs_shake_256s_simple
 ```
-
 
 ## 🙏 Credits
 
