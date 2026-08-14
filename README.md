@@ -1,161 +1,135 @@
-# ![PQCrypto](https://github.com/backbone-hq/pqcrypto/blob/master/media/pqcrypto.png?raw=true)
+# ![PQCrypto](./media/pqcrypto.png)
 
-![PyPI Version](https://img.shields.io/pypi/v/pqcrypto)
 ![Build Status](https://img.shields.io/github/actions/workflow/status/backbone-hq/pqcrypto/ci.yml?branch=master)
-![GitHub License](https://img.shields.io/github/license/backbone-hq/pqcrypto)
 ![Python Version](https://img.shields.io/pypi/pyversions/pqcrypto)
+![PyPI Version](https://img.shields.io/pypi/v/pqcrypto)
+![License](https://img.shields.io/github/license/backbone-hq/pqcrypto)
 
-# 👻 Post-Quantum Cryptography
+**Python bindings for post-quantum cryptography.** Wraps well-tested Rust
+implementations of NIST-standardized and candidate KEM and signature schemes
+via PyO3/maturin. All variants live in a single compiled wheel.
 
-In recent years, there has been a substantial amount of research on quantum computers – machines that exploit quantum mechanical phenomena to solve mathematical problems that are difficult or intractable for conventional computers. If large-scale quantum computers are ever built, they will be able to break many of the public-key cryptosystems currently in use. This would seriously compromise the confidentiality and integrity of digital communications on the Internet and elsewhere. The goal of post-quantum cryptography (also called quantum-resistant cryptography) is to develop cryptographic systems that are secure against both quantum and classical computers, and can interoperate with existing communications protocols and networks.
-
-## 🎯 Purpose
-
-PQCrypto provides tested, ergonomic **Python 3** CFFI bindings to implementations of quantum-resistant cryptographic algorithms that were submitted to the [NIST Post-Quantum Cryptography Standardization](https://csrc.nist.gov/projects/post-quantum-cryptography/post-quantum-cryptography-standardization) process.
-
-This library focuses exclusively on post-quantum cryptography for Python, adhering to the Unix philosophy of doing one thing well. The cryptographic primitives are designed to be composable with existing cryptographic libraries, enabling simple integration of post-quantum cryptography into existing applications without sacrificing security or performance.
-
-## 💾 Installation
-
-You can install PQCrypto using your package manager of choice.
-Pre-compiled wheels are available for common platforms and Python versions.
-
-Using `uv`:
-
-```bash
-uv add pqcrypto
-```
-
-Using `poetry`:
-
-```bash
-poetry add pqcrypto
-```
-
-Using `pip`:
+## Installation
 
 ```bash
 pip install pqcrypto
 ```
 
-## 🔐 Key Encapsulation
+Or build from source:
 
-A Key Encapsulation Mechanism (KEM) is a cryptographic primitive used to securely establish a shared secret key between two parties over an insecure channel. Unlike traditional asymmetric encryption, which focuses on encrypting arbitrary messages, a KEM is specifically designed for the secure transmission of symmetric keys.
+```bash
+pip install maturin pytest
+maturin develop
+```
+
+## Quick Start
+
+The Python API mirrors the Rust crate design: `keygen`, `encaps`, `decaps`
+(KEM) and `keygen`, `sign`, `verify` (signatures).
+
+### KEM — Key Encapsulation
 
 ```python
-from secrets import compare_digest
-from pqcrypto.kem.mceliece8192128 import generate_keypair, encrypt, decrypt
+from pqcrypto.kem.ml_kem_512 import keygen, encaps, decaps
+from pqcrypto.kem.ml_kem_512 import PublicKey, SecretKey
 
-# Alice generates a (public, secret) key pair
-public_key, secret_key = generate_keypair()
+pk, sk = keygen()
+ct, ss = encaps(pk)
+assert decaps(sk, ct) == ss
 
-# Bob derives a secret (the plaintext) and encrypts it with Alice's public key to produce a ciphertext
-ciphertext, plaintext_original = encrypt(public_key)
-
-# Alice decrypts Bob's ciphertext to derive the now shared secret
-plaintext_recovered = decrypt(secret_key, ciphertext)
-
-# Compare the original and recovered secrets in constant time
-assert compare_digest(plaintext_original, plaintext_recovered)
+pk_obj = PublicKey(pk)
+sk_obj = SecretKey(sk)
+ct2, ss2 = pk_obj.encaps()
+assert ss2 == sk_obj.decaps(ct2)
 ```
 
-## ✒️ Signing
-
-Digital signatures are cryptographic mechanisms that provide authentication, non-repudiation, and integrity to digital messages or documents. They allow the recipient to verify that a message was created by a known sender and hasn't been altered during transmission.
+### Signatures
 
 ```python
-from pqcrypto.sign.sphincs_shake_256s_simple import generate_keypair, sign, verify
+from pqcrypto.sign.ml_dsa_44 import keygen, sign, verify
+from pqcrypto.sign.ml_dsa_44 import PublicKey, SecretKey
 
-# Alice generates a (public, secret) key pair
-public_key, secret_key = generate_keypair()
+pk, sk = keygen()
+sig = sign(sk, b"message")
+verify(pk, b"message", sig)  # returns None; raises InvalidSignatureError if invalid
 
-# Alice signs her message using her secret key
-signature = sign(secret_key, b"Hello world")
+# FIPS 204/205 context string:
+sig = sign(sk, b"message", b"my-context")
+verify(pk, b"message", sig, b"my-context")
 
-# Bob uses Alice's public key to validate her signature
-assert verify(public_key, b"Hello world", signature)
+# HashML-DSA / HashSLH-DSA pre-hash mode:
+from pqcrypto import HashAlgorithm
+sig = sign(sk, b"message", hash_algorithm=HashAlgorithm.Sha256)
+verify(pk, b"message", sig, hash_algorithm=HashAlgorithm.Sha256)
+
+pk_obj = PublicKey(pk)
+sk_obj = SecretKey(sk)
+sig_obj = sk_obj.sign(b"message")
+pk_obj.verify(b"message", sig_obj)
 ```
 
-## 🔒 Hybrid Encryption (KEM + Symmetric Cipher)
-
-A KEM alone only establishes a shared secret — it does not encrypt arbitrary messages. To encrypt data, combine the KEM with a symmetric cipher in a hybrid scheme. The KEM bootstraps a shared key and the symmetric cipher uses the key to encrypt the plaintext.
-
-This example uses [`mceliece8192128`](https://classic.mceliece.org/) for key encapsulation and [`ChaCha20-Poly1305`](https://cr.yp.to/chacha.html) for authenticated symmetric encryption.
-
-> **Note:** This example requires the [`cryptography`](https://pypi.org/project/cryptography/) package (`pip install cryptography`).
+### Size constants
 
 ```python
-import os
-from pqcrypto.kem.mceliece8192128 import generate_keypair, encrypt, decrypt
-from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
-
-# Alice generates a (public, secret) key pair
-public_key, secret_key = generate_keypair()
-
-# Bob encapsulates a shared secret using Alice's public key and encrypts his message
-kem_ciphertext, shared_secret = encrypt(public_key)
-nonce = os.urandom(12)
-ciphertext = ChaCha20Poly1305(shared_secret).encrypt(nonce, b"Hello, world!", None)
-
-# Alice decapsulates the shared secret using her secret key and decrypts Bob's message
-shared_secret_recovered = decrypt(secret_key, kem_ciphertext)
-plaintext_recovered = ChaCha20Poly1305(shared_secret_recovered).decrypt(nonce, ciphertext, None)
-
-# Compare the original and recovered messages
-assert plaintext_recovered == b"Hello, world!"
+from pqcrypto.kem.ml_kem_512 import PUBLIC_KEY_SIZE, SECRET_KEY_SIZE, CIPHERTEXT_SIZE, SHARED_SECRET_SIZE
+from pqcrypto.sign.ml_dsa_44 import PUBLIC_KEY_SIZE, SECRET_KEY_SIZE, SIGNATURE_SIZE
 ```
 
-## 📋 Available Algorithms
+## Algorithms
 
-### Key Encapsulation Mechanisms
+Modules live in `pqcrypto.kem` (KEM) and `pqcrypto.sign` (signatures).
 
-```
-- hqc_128
-- hqc_192
-- hqc_256
-- mceliece348864
-- mceliece348864f
-- mceliece460896
-- mceliece460896f
-- mceliece6688128
-- mceliece6688128f
-- mceliece6960119
-- mceliece6960119f
-- mceliece8192128
-- mceliece8192128f
-- ml_kem_1024
-- ml_kem_512
-- ml_kem_768
-```
+### Key Encapsulation
 
-### Signature Algorithms
+- **ML-KEM** (FIPS 203)
+  - `ml_kem_512`, `ml_kem_768`, `ml_kem_1024`
+- **Classic McEliece**
+  - `mceliece_348864`
+  - `mceliece_348864f`
+  - `mceliece_460896`
+  - `mceliece_460896f`
+  - `mceliece_6688128`
+  - `mceliece_6688128f`
+  - `mceliece_6960119`
+  - `mceliece_6960119f`
+  - `mceliece_8192128`
+  - `mceliece_8192128f`
+- **SNTRUP**
+  - `sntrup_653`
+  - `sntrup_761`
+  - `sntrup_857`
+  - `sntrup_953`
+  - `sntrup_1013`
+  - `sntrup_1277`
+- **HQC** (FIPS 207)
+  - `hqc_128`, `hqc_192`, `hqc_256`
 
-```
-- falcon_1024
-- falcon_512
-- falcon_padded_1024
-- falcon_padded_512
-- ml_dsa_44
-- ml_dsa_65
-- ml_dsa_87
-- sphincs_sha2_128f_simple
-- sphincs_sha2_128s_simple
-- sphincs_sha2_192f_simple
-- sphincs_sha2_192s_simple
-- sphincs_sha2_256f_simple
-- sphincs_sha2_256s_simple
-- sphincs_shake_128f_simple
-- sphincs_shake_128s_simple
-- sphincs_shake_192f_simple
-- sphincs_shake_192s_simple
-- sphincs_shake_256f_simple
-- sphincs_shake_256s_simple
-```
+### Signatures
 
-## 🙏 Credits
+- **ML-DSA** (FIPS 204)
+  - `ml_dsa_44`, `ml_dsa_65`, `ml_dsa_87`
+- **SLH-DSA** (FIPS 205)
+  - `slh_dsa_sha2_128s`
+  - `slh_dsa_sha2_128f`
+  - `slh_dsa_sha2_192s`
+  - `slh_dsa_sha2_192f`
+  - `slh_dsa_sha2_256s`
+  - `slh_dsa_sha2_256f`
+  - `slh_dsa_shake_128s`
+  - `slh_dsa_shake_128f`
+  - `slh_dsa_shake_192s`
+  - `slh_dsa_shake_192f`
+  - `slh_dsa_shake_256s`
+  - `slh_dsa_shake_256f`
 
-The C implementations used herein are derived from the [PQClean](https://github.com/pqclean/pqclean/) project.
+## Security
 
----
+The cryptographic implementations are provided by the backbone crates.
+These crates have not undergone a formal security audit; third-party review is
+recommended before production use. This Python wrapper is a thin shim — it
+validates key lengths, maps errors to Python exceptions, and provides idiomatic
+key objects.
 
-Built with ❤️ by [Backbone](https://backbone.dev)
+## License
+
+Apache-2.0. See [LICENSE](LICENSE).

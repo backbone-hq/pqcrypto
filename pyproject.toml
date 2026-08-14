@@ -1,68 +1,68 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
 [project]
 name = "pqcrypto"
-version = "0.4.0"
-description = "Post-quantum cryptography for Python."
-authors = [{ name = "Backbone Authors", email = "root@backbone.dev" }]
-license = "Apache-2.0"
+version = "1.0.0"
+description = "Python bindings for post-quantum cryptography — ML-KEM, ML-DSA, SLH-DSA, Classic McEliece, HQC, and SNTRUP"
 readme = "README.md"
-keywords = ["post-quantum", "cryptography", "security", "pqclean"]
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "Intended Audience :: Science/Research",
-    "Intended Audience :: System Administrators",
-    "Intended Audience :: Telecommunications Industry",
-    "Programming Language :: C",
-    "Programming Language :: Python :: 3",
-    "Topic :: Security",
-    "Topic :: Security :: Cryptography",
-    "Topic :: Software Development",
-    "Topic :: Software Development :: Libraries",
-    "Topic :: Utilities",
-]
+license = "Apache-2.0"
 requires-python = ">=3.9"
-dependencies = [
-    "cffi>=1.17.1",
+authors = [{ name = "Backbone Technologies Ltd.", email = "root@backbone.dev" }]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: Apache Software License",
+  "Natural Language :: English",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Rust",
+  "Topic :: Security :: Cryptography",
 ]
+keywords = [
+  "post-quantum",
+  "cryptography",
+  "pqc",
+  "ml-kem",
+  "ml-dsa",
+  "slh-dsa",
+  "mceliece",
+  "sntrup",
+  "fips",
+  "nist",
+  "kem",
+  "signature",
+]
+dependencies = []
 
 [project.urls]
-"Repository" = "https://github.com/backbone-hq/pqcrypto"
-"Bug Tracker" = "https://github.com/backbone-hq/pqcrypto/issues"
+Homepage = "https://github.com/backbone-hq/pqcrypto"
+Repository = "https://github.com/backbone-hq/pqcrypto"
+Documentation = "https://github.com/backbone-hq/pqcrypto"
 
-[dependency-groups]
-dev = [
-    "cibuildwheel>=3.0.0; python_version >= '3.11'",
-    "hatchling>=1.27.0",
-    "jinja2>=3.1.6",
-    "pytest>=8.3.5",
-    "setuptools>=78.1.0",
+[project.optional-dependencies]
+testing = ["pytest>=7"]
+
+[tool.maturin]
+python-source = "python"
+exclude = [
+  ".github/**",
+  "media/**",
+  "tests/**",
+  ".gitignore",
+  ".pre-commit-config.yaml",
 ]
 
-[build-system]
-requires = ["hatchling", "cffi", "jinja2", "setuptools"]
-build-backend = "hatchling.build"
-
-[tool.ruff]
-exclude = ["pqclean"]
-
-[tool.cibuildwheel]
-before-build = "pip install cffi jinja2 setuptools && python compile.py"
-skip = "pp*-win*"
-
-[tool.setuptools]
-py-modules = ["pqcrypto"]
-
-[tool.hatch.build]
-pure-python = false
-ignore-vcs = true
-include = ["pqcrypto"]
-exclude = ["pqcrypto/**/*.c", "pqcrypto/**/*.o", "Release"]
-artifacts = [
-    "pqcrypto/_kem/*.so",
-    "pqcrypto/_kem/*.pyd",
-    "pqcrypto/_sign/*.so",
-    "pqcrypto/_sign/*.pyd"
-]
-
-[tool.hatch.build.hooks.custom]
-path = "hook.py"
+[tool.pytest.ini_options]
+testpaths = ["tests"]
